@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SV Medicina - Quiz de Patologia</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #3498db;
+            --success: #27ae60;
+            --light: #ecf0f1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light);
+            color: var(--primary);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 { text-align: center; color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+
+        .selector-group { margin-bottom: 20px; }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+
+        .enunciado {
+            background: #f9f9f9;
+            padding: 15px;
+            border-left: 5px solid var(--accent);
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+
+        .image-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .image-container img {
+            width: 100%;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .image-container img:hover { transform: scale(1.02); }
+
+        .input-group { margin-bottom: 20px; }
+
+        textarea {
+            width: 100%;
+            height: 80px;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            resize: none;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover { background-color: var(--secondary); }
+
+        #resposta-box {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e8f6ef;
+            border-radius: 5px;
+            border: 1px solid var(--success);
+        }
+
+        footer { margin-top: 30px; font-size: 12px; color: #7f8c8d; }
+
+        @media (max-width: 600px) {
+            .image-container { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔬 SV Medicina: Quiz Patologia</h1>
+
+    <div class="selector-group">
+        <label for="caso-select">Escolha um caso:</label>
+        <select id="caso-select" onchange="carregarCaso()">
+            </select>
+    </div>
+
+    <div id="enunciado" class="enunciado"></div>
+
+    <div id="imagens" class="image-container"></div>
+
+    <div class="input-group">
+        <label>Seu diagnóstico/achado:</label>
+        <textarea id="user-input" placeholder="Digite sua resposta aqui..."></textarea>
+    </div>
+
+    <button onclick="mostrarResposta()">Verificar Resposta</button>
+
+    <div id="resposta-box">
+        <strong>Resposta Correta:</strong>
+        <p id="resposta-texto"></p>
+    </div>
+</div>
+
+<footer>Desenvolvido para SV Medicina - 2026</footer>
+
+<script>
+    const casos = {
+        "1": {
+            titulo: "Caso 1",
+            enunciado: "Homem de 65 anos, tabagista, hipertenso e diabético com angina estável. Estenose de 70% na carótida.",
+            imagens: ["caso_1_1.jpeg", "caso_1_2.jpeg"],
+            resposta: "Cristais de colesterol presente na placa de ateroma."
+        },
+        "2": {
+            titulo: "Caso 2",
+            enunciado: "Masculino, 62 anos, obeso mórbido e diabético. Óbito por arritmia ventricular.",
+            imagens: ["caso_2_1.jpeg", "caso_2_2.jpeg"],
+            resposta: "Degeneração gordurosa do miocárdio."
+        },
+        "3": {
+            titulo: "Caso 3",
+            enunciado: "Masculino, 60 anos, cirrose por vírus C, ascite e esplenomegalia. Artérias trabeculares com acúmulo proteico.",
+            imagens: ["caso_3_1.jpeg", "caso_3_2.jpeg"],
+            resposta: "Degeneração hialina."
+        },
+        "4": {
+            titulo: "Caso 4",
+            enunciado: "Homem de 45 anos, óbito por embolia pulmonar. Autópsia mostra oclusão de artéria pulmonar.",
+            imagens: ["caso_4_1.jpeg", "caso_4_2.jpeg"],
+            resposta: "Trombo ocluindo a artéria."
+        },
+        "5": {
+            titulo: "Caso 5",
+            enunciado: "Homem de 60 anos, fumante e etilista, com disfagia progressiva e perda de peso.",
+            imagens: ["caso_5_1.jpeg", "caso_5_2.jpeg"],
+            resposta: "Carcinoma de células escamosas do esôfago. Características: Pleomorfismo celular e nuclear, núcleos hipercromáticos, relação N/C elevada, mitoses atípicas e invasão tecidual."
+        },
+        "6": {
+            titulo: "Caso 6",
+            enunciado: "Adolescente de 17 anos com tumor subcutâneo de 2,0 cm no braço, móvel e indolor.",
+            imagens: ["caso_6_1.jpeg", "caso_6_2.jpeg"],
+            resposta: "Neoplasia benigna de tecido adiposo ou proliferação de adipócitos sem atipia (Lipoma)."
+        },
+        "7": {
+            titulo: "Caso 7",
+            enunciado: "Paciente de 55 anos com massa retroperitoneal de 20,0 cm e dor abdominal.",
+            imagens: ["caso_7_1.jpeg", "caso_7_2.jpeg"],
+            resposta: "Lipossarcoma. Características: Pleomorfismo celular/nuclear, núcleos hipercromáticos e relação N/C elevada."
+        },
+        "8": {
+            titulo: "Caso 8",
+            enunciado: "Masculino, 64 anos, com carcinoma escamoso esofágico e linfonodomegalia mediastinal.",
+            imagens: ["caso_8_1.jpeg", "caso_8_2.jpeg"],
+            resposta: "Metástase de carcinoma de células escamosas para linfonodo."
+        },
+        "9": {
+            titulo: "Caso 9",
+            enunciado: "Masculino, 68 anos, alcoólatra há 48 anos com hepatomegalia e icterícia.",
+            imagens: ["caso_9_1.jpeg", "caso_9_2.jpeg"],
+            resposta: "Degeneração gordurosa do fígado (Esteatose)."
+        },
+        "10": {
+            titulo: "Caso 10",
+            enunciado: "Mulher de 50 anos exposta a poluição com tosse crônica. Epitélio escamoso substitui o ciliado.",
+            imagens: ["caso 10 - 1.jpeg", "caso 10 - 2.jpeg"],
+            resposta: "Metaplasia escamosa."
+        },
+        "11": {
+            titulo: "Caso 11",
+            enunciado: "Adolescente de 16 anos com dor em QID e febre. Leucocitose com desvio à esquerda.",
+            imagens: ["caso 11_1.jpeg", "caso_11_2.jpeg"],
+            resposta: "Neutrófilos (Apendicite Aguda)."
+        },
+        "12": {
+            titulo: "Caso 12",
+            enunciado: "Feminina, 32 anos, Crohn em remissão. Biópsia mostra infiltrado mononuclear e fibroblastos.",
+            imagens: ["caso_12_1.jpeg", "caso_12_2.jpeg"],
+            resposta: "Tecido de granulação."
+        },
+        "13": {
+            titulo: "Caso 13",
+            enunciado: "Masculino, 35 anos, HIV+, tosse, febre vespertina e hemoptise. BAAR positivo.",
+            imagens: ["caso_13_1.jpeg", "caso_13_2.jpeg"],
+            resposta: "Granuloma com necrose caseosa."
+        }
+    };
+
+    const select = document.getElementById('caso-select');
+    
+    // Popular o select
+    Object.keys(casos).forEach(key => {
+        let opt = document.createElement('option');
+        opt.value = key;
+        opt.innerHTML = casos[key].titulo;
+        select.appendChild(opt);
+    });
+
+    function carregarCaso() {
+        const id = select.value;
+        const caso = casos[id];
+        
+        document.getElementById('enunciado').innerHTML = `<strong>Enunciado:</strong> ${caso.enunciado}`;
+        document.getElementById('resposta-box').style.display = 'none';
+        document.getElementById('user-input').value = '';
+        
+        const imgDiv = document.getElementById('imagens');
+        imgDiv.innerHTML = '';
+        
+        caso.imagens.forEach(imgSrc => {
+            const img = document.createElement('img');
+            img.src = imgSrc;
+            img.onerror = function() { this.src = 'https://via.placeholder.com/400?text=Imagem+Nao+Encontrada'; };
+            imgDiv.appendChild(img);
+        });
+    }
+
+    function mostrarResposta() {
+        const id = select.value;
+        document.getElementById('resposta-texto').innerText = casos[id].resposta;
+        document.getElementById('resposta-box').style.display = 'block';
+        document.getElementById('resposta-box').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Inicializar primeiro caso
+    carregarCaso();
+</script>
+
+</body>
+</html>
