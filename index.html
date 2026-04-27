@@ -10,6 +10,7 @@
             --secondary: #34495e;
             --accent: #3498db;
             --success: #27ae60;
+            --danger: #e74c3c;
             --light: #ecf0f1;
         }
 
@@ -35,16 +36,30 @@
 
         h1 { text-align: center; color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
 
-        .selector-group { margin-bottom: 20px; }
-        
-        select {
-            width: 100%;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-            font-size: 16px;
+        .hidden { display: none !important; }
+
+        /* Estilo da Galeria Inicial */
+        .grid-estudo {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
         }
 
+        .card-estudo {
+            cursor: pointer;
+            text-align: center;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            transition: 0.3s;
+        }
+
+        .card-estudo:hover { border-color: var(--accent); background: #f0f7ff; }
+
+        .card-estudo img { width: 100%; border-radius: 4px; height: 100px; object-fit: cover; }
+
+        /* Estilo do Quiz */
         .enunciado {
             background: #f9f9f9;
             padding: 15px;
@@ -64,13 +79,7 @@
             width: 100%;
             border-radius: 8px;
             border: 1px solid #ddd;
-            cursor: pointer;
-            transition: transform 0.2s;
         }
-
-        .image-container img:hover { transform: scale(1.02); }
-
-        .input-group { margin-bottom: 20px; }
 
         textarea {
             width: 100%;
@@ -81,6 +90,7 @@
             resize: none;
             box-sizing: border-box;
             font-size: 14px;
+            margin-bottom: 10px;
         }
 
         button {
@@ -93,21 +103,26 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            transition: background 0.3s;
+            margin-bottom: 10px;
         }
 
         button:hover { background-color: var(--secondary); }
+        
+        .btn-success { background-color: var(--success); }
+        .btn-accent { background-color: var(--accent); }
 
-        #resposta-box {
-            display: none;
-            margin-top: 20px;
+        #feedback {
             padding: 15px;
-            background-color: #e8f6ef;
             border-radius: 5px;
-            border: 1px solid var(--success);
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: center;
         }
 
-        footer { margin-top: 30px; font-size: 12px; color: #7f8c8d; }
+        .correct { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .wrong { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        .resultado-final { text-align: center; }
 
         @media (max-width: 600px) {
             .image-container { grid-template-columns: 1fr; }
@@ -117,153 +132,188 @@
 <body>
 
 <div class="container">
-    <h1>🔬 SV Medicina: Quiz Patologia</h1>
+    <h1>🔬 SV Medicina: Patologia</h1>
 
-    <div class="selector-group">
-        <label for="caso-select">Escolha um caso:</label>
-        <select id="caso-select" onchange="carregarCaso()">
-            </select>
+    <div id="tela-inicial">
+        <p>Clique em um caso para revisar a lâmina antes de começar o quiz:</p>
+        <div id="grid-estudo" class="grid-estudo"></div>
+        <br>
+        <button class="btn-success" onclick="iniciarQuiz()">Começar Desafio Aleatório</button>
     </div>
 
-    <div id="enunciado" class="enunciado"></div>
+    <div id="tela-quiz" class="hidden">
+        <div id="progresso" style="margin-bottom: 10px; font-weight: bold;"></div>
+        <div id="enunciado" class="enunciado"></div>
+        <div id="imagens" class="image-container"></div>
 
-    <div id="imagens" class="image-container"></div>
+        <div class="input-group">
+            <label>Seu diagnóstico/achado:</label>
+            <textarea id="user-input" placeholder="Digite sua resposta aqui..."></textarea>
+        </div>
 
-    <div class="input-group">
-        <label>Seu diagnóstico/achado:</label>
-        <textarea id="user-input" placeholder="Digite sua resposta aqui..."></textarea>
+        <button id="btn-verificar" onclick="verificarResposta()">Verificar Resposta</button>
+        
+        <div id="feedback" class="hidden"></div>
+        
+        <div id="box-proxima" class="hidden">
+            <button class="btn-accent" onclick="proximaPergunta()">Próxima Questão ➔</button>
+        </div>
     </div>
 
-    <button onclick="mostrarResposta()">Verificar Resposta</button>
-
-    <div id="resposta-box">
-        <strong>Resposta Correta:</strong>
-        <p id="resposta-texto"></p>
+    <div id="tela-resultado" class="hidden">
+        <div class="resultado-final">
+            <h2>Fim do Quiz!</h2>
+            <h1 id="nota-final">0/0</h1>
+            <div id="lista-erros" style="text-align: left; margin: 20px 0;"></div>
+            <button class="btn-accent" id="btn-revisar-erros" onclick="revisarErros()">Revisar Apenas Erros</button>
+            <button onclick="location.reload()">Voltar ao Início</button>
+        </div>
     </div>
 </div>
 
 <footer>Desenvolvido para SV Medicina - 2026</footer>
 
 <script>
-    const casos = {
-        "1": {
-            titulo: "Caso 1",
-            enunciado: "Homem de 65 anos, tabagista crônico, com hipertensão e diabetes tipo 2, apresenta angina estável há 6 meses. Exame angiográfico revela estenose de 70% na carótida interna direita. Realizado procedimento cirúrgico com envio de fragmento arterial para a patologia que descreve placa aterosclerótica. Qual o achado presente no corte histológico?",
-            imagens: ["caso_1_1.jpeg", "caso_1_2.jpeg"],
-            resposta: "Cristais de colesterol presente na placa de ateroma."
-        },
-        "2": {
-            titulo: "Caso 2",
-            enunciado: "Paciente masculino, 62 anos, obeso mórbido (IMC 38), diabético tipo 2 mal controlado, falece por arritmia ventricular. Durante a necropsia, fragmento do miocárdio foi enviado para análise histológica e apresentou vacuolização citoplasmática lipídica e núcleos deslocados para a periferia. Qual a lesão presente no corte histológico?",
-            imagens: ["caso_2_1.jpeg", "caso_2_2.jpeg"],
-            resposta: "Degeneração gordurosa do miocárdio."
-        },
-        "3": {
-            titulo: "Caso 3",
-            enunciado: "Paciente masculino de 60 anos com cirrose pelo vírus C, ascite refratária e esplenomegalia. Realizada esplenectomia com amostra sendo enviada para a patologia que descreveu acúmulo de proteínas em artérias trabeculares, com depósito subendotelial e fibrose perivascular. Qual a lesão presente no corte histológico?",
-            imagens: ["caso_3_1.jpeg", "caso_3_2.jpeg"],
-            resposta: "Degeneração hialina."
-        },
-        "4": {
-            titulo: "Caso 4",
-            enunciado: "Homem de 45 anos com quadro de embolia pulmonar. Mesmo após conduta médica adequada, o paciente vem a óbito. A autópsia mostra oclusão de uma artéria pulmonar com identificação de plaquetas e fibrina. Qual o achado presente no corte histológico desta amostra?",
-            imagens: ["caso_4_1.jpeg", "caso_4_2.jpeg"],
-            resposta: "Trombo ocluindo a artéria."
-        },
-        "5": {
-            titulo: "Caso 5",
-            enunciado: "Homem de 60 anos, fumante (40 maços.ano) e etilista crônico, com disfagia progressiva e perda de 15,0 kg em 2 meses. Endoscopia revela massa esofágica. Biópsia revela carcinoma de células escamosas do esôfago. Identifique uma característica desta neoplasia presente no corte histológico.",
-            imagens: ["caso_5_1.jpeg", "caso_5_2.jpeg"],
-            resposta: "Carcinoma de células escamosas do esôfago. Características: Pleomorfismo celular e nuclear, núcleos hipercromáticos, relação N/C elevada, mitoses atípicas e invasão tecidual."
-        },
-        "6": {
-            titulo: "Caso 6",
-            enunciado: "Adolescente de 17 anos com tumor subcutâneo no braço direito de 2,0 cm, móvel e indolor. Excisão e análise da lesão revelam lipoma. Descreva esta neoplasia observada ao microscópio.",
-            imagens: ["caso_6_1.jpeg", "caso_6_2.jpeg"],
-            resposta: "Neoplasia benigna de tecido adiposo ou proliferação de adipócitos sem atipia (Lipoma)."
-        },
-        "7": {
-            titulo: "Caso 7",
-            enunciado: "Paciente de 55 anos com massa retroperitoneal de 20,0 cm, dor abdominal. Biópsia revela lipossarcoma. Identifique uma característica desta neoplasia presente no corte histológico.",
-            imagens: ["caso_7_1.jpeg", "caso_7_2.jpeg"],
-            resposta: "Lipossarcoma. Características: Pleomorfismo celular/nuclear, núcleos hipercromáticos e relação N/C elevada."
-        },
-        "8": {
-            titulo: "Caso 8",
-            enunciado: "Paciente masculino de 64 anos com diagnóstico de carcinoma de células escamosas esofágico identifica linfonodomegalia mediastinal. Realizada excisão de um dos linfonodos da região descrita. Identifique o achado presente no corte histológico.",
-            imagens: ["caso_8_1.jpeg", "caso_8_2.jpeg"],
-            resposta: "Metástase de carcinoma de células escamosas para linfonodo."
-        },
-        "9": {
-            titulo: "Caso 9",
-            enunciado: "Paciente masculino, 68 anos, alcoólatra há 48 anos apresenta hepatomegalia e icterícia. Biópsia hepática mostra vacúolos lipídicos em hepatócitos. Qual a lesão presente no corte histológico?",
-            imagens: ["caso_9_1.jpeg", "caso_9_2.jpeg"],
-            resposta: "Degeneração gordurosa do fígado (Esteatose)."
-        },
-        "10": {
-            titulo: "Caso 10",
-            enunciado: "Mulher de 50 anos exposta a poluição por longa data com relato de tosse crônica. Broncoscopia indica alteração e biópsia é encaminhada para a patologia que identifica epitélio escamoso substituindo epitélio ciliado. Qual o nome da alteração presente no corte histológico?",
-            imagens: ["caso 10 - 1.jpeg", "caso 10 - 2.jpeg"],
-            resposta: "Metaplasia escamosa."
-        },
-        "11": {
-            titulo: "Caso 11",
-            enunciado: "Adolescente de 16 anos com dor em quadrante inferior direito e febre. Hemograma revela leucocitose com desvio à esquerda. Realizada abordagem cirúrgica com apendicectomia. Peça cirúrgica enviada à patologia que identifica apendicite aguda. Identifique a célula predominante neste diagnóstico.",
-            imagens: ["caso 11_1.jpeg", "caso_11_2.jpeg"],
-            resposta: "Neutrófilos (Apendicite Aguda)."
-        },
-        "12": {
-            titulo: "Caso 12",
-            enunciado: "Paciente feminina com 32 anos e em acompanhamento por doença de Crohn, que se encontra em remissão. Realizada colonoscopia com múltiplas biópsias intestinais. Mucosa jejunal mostra infiltrado mononuclear, proliferação vascular e fibroblastos. Identifique esta fase do processo de regeneração tecidual.",
-            imagens: ["caso_12_1.jpeg", "caso_12_2.jpeg"],
-            resposta: "Tecido de granulação."
-        },
-        "13": {
-            titulo: "Caso 13",
-            enunciado: "Paciente masculino, 35 anos e HIV+ apresenta quadro de tosse, febre vespertina e hemoptise. Radiografia de tórax revela nódulo em lobo superior do pulmão direito. Baciloscopia positiva para BAAR. Biópsia do nódulo apresenta achado que favorece tuberculose. Identifique este achado presente no corte histológico.",
-            imagens: ["caso_13_1.jpeg", "caso_13_2.jpeg"],
-            resposta: "Granuloma com necrose caseosa."
-        }
+    const casosOriginais = {
+        "1": { titulo: "Caso 1", enunciado: "Homem de 65 anos, tabagista crônico, com hipertensão e diabetes tipo 2, apresenta angina estável há 6 meses. Exame angiográfico revela estenose de 70% na carótida interna direita. Realizado procedimento cirúrgico com envio de fragmento arterial para a patologia que descreve placa aterosclerótica. Qual o achado presente no corte histológico?", imagens: ["caso_1_1.jpeg", "caso_1_2.jpeg"], resposta: "Cristais de colesterol presente na placa de ateroma." },
+        "2": { titulo: "Caso 2", enunciado: "Paciente masculino, 62 anos, obeso mórbido (IMC 38), diabético tipo 2 mal controlado, falece por arritmia ventricular. Durante a necropsia, fragmento do miocárdio foi enviado para análise histológica e apresentou vacuolização citoplasmática lipídica e núcleos deslocados para a periferia. Qual a lesão presente no corte histológico?", imagens: ["caso_2_1.jpeg", "caso_2_2.jpeg"], resposta: "Degeneração gordurosa do miocárdio." },
+        "3": { titulo: "Caso 3", enunciado: "Paciente masculino de 60 anos com cirrose pelo vírus C, ascite refratária e esplenomegalia. Realizada esplenectomia com amostra sendo enviada para a patologia que descreveu acúmulo de proteínas em artérias trabeculares, com depósito subendotelial e fibrose perivascular. Qual a lesão presente no corte histológico?", imagens: ["caso_3_1.jpeg", "caso_3_2.jpeg"], resposta: "Degeneração hialina." },
+        "4": { titulo: "Caso 4", enunciado: "Homem de 45 anos com quadro de embolia pulmonar. Mesmo após conduta médica adequada, o paciente vem a óbito. A autópsia mostra oclusão de uma artéria pulmonar com identificação de plaquetas e fibrina. Qual o achado presente no corte histológico desta amostra?", imagens: ["caso_4_1.jpeg", "caso_4_2.jpeg"], resposta: "Trombo ocluindo a artéria." },
+        "5": { titulo: "Caso 5", enunciado: "Homem de 60 anos, fumante (40 maços.ano) e etilista crônico, com disfagia progressiva e perda de 15,0 kg em 2 meses. Endoscopia revela massa esofágica. Biópsia revela carcinoma de células escamosas do esôfago. Identifique uma característica desta neoplasia presente no corte histológico.", imagens: ["caso_5_1.jpeg", "caso_5_2.jpeg"], resposta: "Carcinoma de células escamosas do esôfago. Características: Pleomorfismo celular e nuclear, núcleos hipercromáticos, relação N/C elevada, mitoses atípicas e invasão tecidual." },
+        "6": { titulo: "Caso 6", enunciado: "Adolescente de 17 anos com tumor subcutâneo no braço direito de 2,0 cm, móvel e indolor. Excisão e análise da lesão revelam lipoma. Descreva esta neoplasia observada ao microscópio.", imagens: ["caso_6_1.jpeg", "caso_6_2.jpeg"], resposta: "Neoplasia benigna de tecido adiposo ou proliferação de adipócitos sem atipia (Lipoma)." },
+        "7": { titulo: "Caso 7", enunciado: "Paciente de 55 anos com massa retroperitoneal de 20,0 cm, dor abdominal. Biópsia revela lipossarcoma. Identifique uma característica desta neoplasia presente no corte histológico.", imagens: ["caso_7_1.jpeg", "caso_7_2.jpeg"], resposta: "Lipossarcoma. Características: Pleomorfismo celular/nuclear, núcleos hipercromáticos e relação N/C elevada." },
+        "8": { titulo: "Caso 8", enunciado: "Paciente masculino de 64 anos com diagnóstico de carcinoma de células escamosas esofágico identifica linfonodomegalia mediastinal. Realizada excisão de um dos linfonodos da região descrita. Identifique o achado presente no corte histológico.", imagens: ["caso_8_1.jpeg", "caso_8_2.jpeg"], resposta: "Metástase de carcinoma de células escamosas para linfonodo." },
+        "9": { titulo: "Caso 9", enunciado: "Paciente masculino, 68 anos, alcoólatra há 48 anos apresenta hepatomegalia e icterícia. Biópsia hepática mostra vacúolos lipídicos em hepatócitos. Qual a lesão presente no corte histológico?", imagens: ["caso_9_1.jpeg", "caso_9_2.jpeg"], resposta: "Degeneração gordurosa do fígado (Esteatose)." },
+        "10": { titulo: "Caso 10", enunciado: "Mulher de 50 anos exposta a poluição por longa data com relato de tosse crônica. Broncoscopia indica alteração e biópsia é encaminhada para a patologia que identifica epitélio escamoso substituindo epitélio ciliado. Qual o nome da alteração presente no corte histológico?", imagens: ["caso 10 - 1.jpeg", "caso 10 - 2.jpeg"], resposta: "Metaplasia escamosa." },
+        "11": { titulo: "Caso 11", enunciado: "Adolescente de 16 anos com dor em quadrante inferior direito e febre. Hemograma revela leucocitose com desvio à esquerda. Realizada abordagem cirúrgica com apendicectomia. Peça cirúrgica enviada à patologia que identifica apendicite aguda. Identifique a célula predominante neste diagnóstico.", imagens: ["caso 11_1.jpeg", "caso_11_2.jpeg"], resposta: "Neutrófilos (Apendicite Aguda)." },
+        "12": { titulo: "Caso 12", enunciado: "Paciente feminina com 32 anos e em acompanhamento por doença de Crohn, que se encontra em remissão. Realizada colonoscopia com múltiplas biópsias intestinais. Mucosa jejunal mostra infiltrado mononuclear, proliferação vascular e fibroblastos. Identifique esta fase do processo de regeneração tecidual.", imagens: ["caso_12_1.jpeg", "caso_12_2.jpeg"], resposta: "Tecido de granulação." },
+        "13": { titulo: "Caso 13", enunciado: "Paciente masculino, 35 anos e HIV+ apresenta quadro de tosse, febre vespertina e hemoptise. Radiografia de tórax revela nódulo em lobo superior do pulmão direito. Baciloscopia positiva para BAAR. Biópsia do nódulo apresenta achado que favorece tuberculose. Identifique este achado presente no corte histológico.", imagens: ["caso_13_1.jpeg", "caso_13_2.jpeg"], resposta: "Granuloma com necrose caseosa." }
     };
 
-    const select = document.getElementById('caso-select');
-    
-    // Popular o select
-    Object.keys(casos).forEach(key => {
-        let opt = document.createElement('option');
-        opt.value = key;
-        opt.innerHTML = casos[key].titulo;
-        select.appendChild(opt);
-    });
+    let listaQuestões = [];
+    let indiceAtual = 0;
+    let acertos = 0;
+    let errosIds = [];
 
-    function carregarCaso() {
-        const id = select.value;
-        const caso = casos[id];
+    // --- INICIALIZAÇÃO ---
+    function init() {
+        const grid = document.getElementById('grid-estudo');
+        Object.keys(casosOriginais).forEach(id => {
+            const caso = casosOriginais[id];
+            const card = document.createElement('div');
+            card.className = 'card-estudo';
+            card.innerHTML = `
+                <img src="${caso.imagens[0]}" onerror="this.src='https://via.placeholder.com/150?text=Lâmina'">
+                <div style="font-size:12px; margin-top:5px"><strong>${caso.titulo}</strong></div>
+            `;
+            card.onclick = () => alert(`Lâmina: ${caso.titulo}\nResposta: ${caso.resposta}`);
+            grid.appendChild(card);
+        });
+    }
+
+    function normalizar(texto) {
+        return texto.toLowerCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove acentos
+            .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g, "") // Remove pontuação
+            .trim();
+    }
+
+    function iniciarQuiz(apenasErros = false) {
+        if (apenasErros) {
+            listaQuestões = errosIds.map(id => ({ id, ...casosOriginais[id] }));
+        } else {
+            listaQuestões = Object.keys(casosOriginais).map(id => ({ id, ...casosOriginais[id] }));
+        }
         
-        document.getElementById('enunciado').innerHTML = `<strong>Enunciado:</strong> ${caso.enunciado}`;
-        document.getElementById('resposta-box').style.display = 'none';
+        // Embaralhar
+        listaQuestões.sort(() => Math.random() - 0.5);
+        
+        indiceAtual = 0;
+        acertos = 0;
+        errosIds = [];
+        
+        document.getElementById('tela-inicial').classList.add('hidden');
+        document.getElementById('tela-resultado').classList.add('hidden');
+        document.getElementById('tela-quiz').classList.remove('hidden');
+        carregarQuestao();
+    }
+
+    function carregarQuestao() {
+        const questao = listaQuestões[indiceAtual];
+        document.getElementById('progresso').innerText = `Questão ${indiceAtual + 1} de ${listaQuestões.length}`;
+        document.getElementById('enunciado').innerHTML = `<strong>Enunciado:</strong> ${questao.enunciado}`;
+        document.getElementById('feedback').classList.add('hidden');
+        document.getElementById('box-proxima').classList.add('hidden');
+        document.getElementById('btn-verificar').classList.remove('hidden');
         document.getElementById('user-input').value = '';
-        
+        document.getElementById('user-input').disabled = false;
+
         const imgDiv = document.getElementById('imagens');
         imgDiv.innerHTML = '';
-        
-        caso.imagens.forEach(imgSrc => {
+        questao.imagens.forEach(src => {
             const img = document.createElement('img');
-            img.src = imgSrc;
+            img.src = src;
             img.onerror = function() { this.src = 'https://via.placeholder.com/400?text=Imagem+Nao+Encontrada'; };
             imgDiv.appendChild(img);
         });
     }
 
-    function mostrarResposta() {
-        const id = select.value;
-        document.getElementById('resposta-texto').innerText = casos[id].resposta;
-        document.getElementById('resposta-box').style.display = 'block';
-        document.getElementById('resposta-box').scrollIntoView({ behavior: 'smooth' });
+    function verificarResposta() {
+        const questao = listaQuestões[indiceAtual];
+        const userResp = normalizar(document.getElementById('user-input').value);
+        const correta = normalizar(questao.resposta);
+        
+        const feedbackDiv = document.getElementById('feedback');
+        feedbackDiv.classList.remove('hidden');
+        document.getElementById('user-input').disabled = true;
+        document.getElementById('btn-verificar').classList.add('hidden');
+        document.getElementById('box-proxima').classList.remove('hidden');
+
+        // Verificação simples de inclusão para dar margem a respostas incompletas mas corretas
+        if (userResp !== "" && (correta.includes(userResp) || userResp.includes(correta.split(' ')[0]))) {
+            feedbackDiv.className = 'correct';
+            feedbackDiv.innerHTML = `✅ Correto!<br><small>${questao.resposta}</small>`;
+            acertos++;
+        } else {
+            feedbackDiv.className = 'wrong';
+            feedbackDiv.innerHTML = `❌ Errado.<br><strong>Resposta correta:</strong> ${questao.resposta}`;
+            errosIds.push(questao.id);
+        }
     }
 
-    // Inicializar primeiro caso
-    carregarCaso();
+    function proximaPergunta() {
+        indiceAtual++;
+        if (indiceAtual < listaQuestões.length) {
+            carregarQuestao();
+        } else {
+            mostrarResultado();
+        }
+    }
+
+    function mostrarResultado() {
+        document.getElementById('tela-quiz').classList.add('hidden');
+        document.getElementById('tela-resultado').classList.remove('hidden');
+        
+        const nota = (acertos / listaQuestões.length) * 10;
+        document.getElementById('nota-final').innerText = `Nota: ${nota.toFixed(1)} (${acertos}/${listaQuestões.length})`;
+        
+        const listaErrosDiv = document.getElementById('lista-erros');
+        if (errosIds.length > 0) {
+            listaErrosDiv.innerHTML = '<h3>Lâminas para revisar:</h3><ul>' + 
+                errosIds.map(id => `<li>${casosOriginais[id].titulo}</li>`).join('') + '</ul>';
+            document.getElementById('btn-revisar-erros').classList.remove('hidden');
+        } else {
+            listaErrosDiv.innerHTML = '<p>🎉 Parabéns! Você acertou tudo!</p>';
+            document.getElementById('btn-revisar-erros').classList.add('hidden');
+        }
+    }
+
+    function revisarErros() {
+        iniciarQuiz(true);
+    }
+
+    // Iniciar galeria
+    init();
 </script>
 
 </body>
